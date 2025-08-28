@@ -1,38 +1,78 @@
-<html>
-    <head>
-        <title></title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocktail Random App</title>
+    <link rel="stylesheet" href="asincrono.css">
         <script src="asincrono.js"></script>
-        <link rel="stylesheet" href="asincrono.css">
-    </head>
+</head>
+<body>
+    <header>
+        <h1>Cocktail Random App</h1>
+        <button id="btnFavoritos" class="btn-favoritos">Ver Favoritos</button>
+    </header>
 
-    <body>
-        <header>
-            <h1>Cocktail...</h1>
-            <button class="favoritos">Favoritos</button>
-        </header>
+    
+    <div class="seccion-botones">
+        <button id="btnAleatorio" class="aleatorio">
+            Buscar un elemento aleatorio
+        </button>
+    </div>
 
-        <div>
-            <button class="aleatorio">Buscar un elemento aleatorio</button>
+
+    <div id="loader" class="loader oculto">
+        <div class="spinner"></div>
+        <p>Buscando cóctel aleatorio...</p>
+    </div>
+
+    
+    <div id="mostrarActual" class="mostrarActual oculto">
+        <div class="header-actual">
+            <h1>🍹 Cóctel Actual</h1>
+            <button id="btnAgregar" class="btn-agregar">Agregar a Favoritos</button>
         </div>
-
-        <div class="favoritos">
-            <h1>Favoritos</h1>
-        </div>
-
-        <div class="mostrarActual">
-            <h1>elemento actual</h1>
-            <div class="espacioMostrarActual">
-                <ul>
-                    <li>id</li>
-                    <li>producto</li>
-                    <li>categoria</li>
-                    <li>Ingredientes</li>
-                    <li>instrucciones</li>
-                    <li><img src="" alt=""></li>
-                </ul>
+        
+        <div class="espacioMostrarActual">
+            <div class="info-cocktail">
+                <div class="datos-cocktail">
+                    <ul>
+                        <li><strong>ID:</strong> <span id="cocktailId">-</span></li>
+                        <li><strong>Nombre:</strong> <span id="cocktailNombre">-</span></li>
+                        <li><strong>Categoría:</strong> <span id="cocktailCategoria">-</span></li>
+                        <li><strong>Tipo:</strong> <span id="cocktailTipo">-</span></li>
+                    </ul>
+                </div>
+                
+                <div class="imagen-cocktail">
+                    <img id="cocktailImagen" src="" alt="Imagen del cóctel">
+                </div>
+            </div>
+            
+            <div class="ingredientes-instrucciones">
+                <div class="ingredientes">
+                    <strong>Ingredientes:</strong>
+                    <ul id="listaIngredientes">
+                        
+                    </ul>
+                </div>
+                
+                <div class="instrucciones">
+                    <strong>Instrucciones:</strong>
+                    <p id="cocktailInstrucciones">-</p>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="loader"></div>
-    </body>
+    
+    <div id="seccionFavoritos" class="favoritos oculto">
+        <h1>Favoritos</h1>
+        <div id="listaFavoritos" class="lista-favoritos">
+            <p class="sin-favoritos">No tienes favoritos aún</p>
+        </div>
+    </div>
+
+
+</body>
 </html>
