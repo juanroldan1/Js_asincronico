@@ -24,7 +24,6 @@ boton_aleatorio.addEventListener("click", function() {
         const coctel = data.drinks[0];
         console.log(coctel);
 
-        // 3. Ocultar el loader y mostrar los resultados
         loader.classList.add("oculto");
         mostrarActual.classList.remove("oculto");
 
@@ -35,11 +34,9 @@ boton_aleatorio.addEventListener("click", function() {
         imagencoctel.src = coctel.strDrinkThumb;
 
         for (let i = 1; i <= 15; i++) {
-            // Construye los nombres de las propiedades dinámicamente
             const ingrediente = coctel[`strIngredient${i}`];
             const medida = coctel[`strMeasure${i}`];
 
-            // Si el ingrediente existe y no es nulo, lo añade a la lista
         if (ingrediente && ingrediente.trim() !== '') {
             const li = document.createElement('li');
             li.textContent = `${medida ? medida + ' ' : ''}${ingrediente}`;
@@ -50,7 +47,6 @@ boton_aleatorio.addEventListener("click", function() {
         instrucciones.textContent = coctel.strInstructionsES;
     })
     .catch(error => {
-        // 4. Capturar y manejar errores de la red
         console.error("Hubo un problema con la solicitud fetch:", error);
         loader.classList.add("oculto");
     });
