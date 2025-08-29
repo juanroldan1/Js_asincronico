@@ -1,3 +1,4 @@
+// Variables del DOM
 const boton_aleatorio = document.getElementById("btnAleatorio");
 const loader = document.getElementById("loader");
 const mostrarActual = document.getElementById("mostrarActual");
@@ -13,98 +14,99 @@ const btnFavoritos = document.getElementById("btnFavoritos");
 const seccionFavoritos = document.getElementById("seccionFavoritos");
 const listaFavoritos = document.getElementById("listaFavoritos");
 
+// Variable global para el cóctel actual
 let coctelActual = null;
 
-function obtenerFavoritos(){
+// FUNCIONES PARA MANEJAR LOCALSTORAGE - SEGÚN REQUERIMIENTO 3
+function obtenerFavoritos() {
     const favoritos = localStorage.getItem('cocktailFavoritos');
-    return favoritos ? JSON.parse(favoritos):[];
+    return favoritos ? JSON.parse(favoritos) : [];
 }
 
-function agregarFavoritos(coctel){
-    const favoritos = obtenerFavoritos();
-    const yaExtiste = favoritos.some(fav => fav.idDrink === coctel.idDrink);
+function guardarFavoritos(favoritos) {
+    localStorage.setItem('cocktailFavoritos', JSON.stringify(favoritos));
+}
 
-    if(!yaExtiste){
-        const favoritosCoctel = {
+// REQUERIMIENTO 3: Guardar SOLO ID y NOMBRE
+function agregarAFavoritos(coctel) {
+    const favoritos = obtenerFavoritos();
+    const yaExiste = favoritos.some(fav => fav.idDrink === coctel.idDrink);
+
+    if (!yaExiste) {
+        // CUMPLIENDO REQUERIMIENTO: Solo guardar ID y NOMBRE
+        const favoritoCoctel = {
             idDrink: coctel.idDrink,
-            strDrink: coctel.strDrink,
-            strCategory: coctel.strCategory,
-            strAlcoholic: coctel.strAlcoholic,
-            strDrinkThumb: coctel.strDrinkThumb,
-            strInstructionsES: coctel.strInstructionsES,
-            ingredientes: extraerIngredientes(coctel)
+            strDrink: coctel.strDrink
+            // NO guardamos más información según requerimiento
         };
-        favoritos.push(favoritosCoctel);
+        
+        favoritos.push(favoritoCoctel);
         guardarFavoritos(favoritos);
 
-        btnAgregar.textContent = "coctel agregado con exito a favoritos";
-        btnAgregar.style.backgroundColor="#27ae60";
-        console.log("Coctel agregado a tus favoritos");
+        btnAgregar.textContent = "✓ Agregado a Favoritos";
+        btnAgregar.style.backgroundColor = "#27ae60";
+        btnAgregar.disabled = true;
+        
+        console.log("Cóctel agregado a favoritos (solo ID y nombre):", favoritoCoctel);
+        
+        // Actualizar contador en botón de favoritos
+        actualizarContadorFavoritos();
         return true;
-    }
-    else{
-        alert("este coctel ya esta en la lista de favoritos");
+    } else {
+        alert("Este cóctel ya está en tus favoritos");
         return false;
     }
 }
 
-function extraerIngredientes(coctel){
-    const ingredientes = [];
-    for(let i = 1; i <= 15; i++){
-        const ingrediente = coctel[`strIngredients${i}`];
-        const medida = coctel[`strMeasure${i}`];
-
-        if (ingrediente && ingrediente.trim()!== ''){
-            ingredientes.push({
-                nombre: ingrediente,
-                medida: medida||''
-            });
-
-        }
-    }
-    return ingredientes;
-}
-function eliminarDeFavoritos(idDrink){
-const favoritos = obtenerFavoritos();
-const favoritosFiltrados = favoritos.filter(fav => fav.idDrink !== idDrink);
-guardarFavoritos(favoritosFiltrados);
-mostrarFavoritos();
+function eliminarDeFavoritos(idDrink) {
+    const favoritos = obtenerFavoritos();
+    const favoritosFiltrados = favoritos.filter(fav => fav.idDrink !== idDrink);
+    guardarFavoritos(favoritosFiltrados);
+    mostrarFavoritos();
+    actualizarContadorFavoritos();
+    console.log("Cóctel eliminado de favoritos");
 }
 
-function mostrarFavoritos(){
+function verificarSiEsFavorito(idDrink) {
+    const favoritos = obtenerFavoritos();
+    return favoritos.some(fav => fav.idDrink === idDrink);
+}
+
+function mostrarFavoritos() {
     const favoritos = obtenerFavoritos();
 
-    listaFavoritos.innerHTML='';
+    listaFavoritos.innerHTML = '';
+    
     if (favoritos.length === 0) {
         listaFavoritos.innerHTML = '<p class="sin-favoritos">No tienes favoritos aún</p>';
-    }
-else {
+    } else {
         favoritos.forEach(coctel => {
             const div = document.createElement('div');
             div.className = 'favorito-item';
             
+            // Solo mostramos ID y nombre (lo único que guardamos)
             div.innerHTML = `
                 <div class="favorito-info">
                     <h4>${coctel.strDrink}</h4>
-                    <small>${coctel.strCategory} • ${coctel.fechaAgregado}</small>
+                    <small>ID: ${coctel.idDrink}</small>
                 </div>
                 <button class="btn-eliminar" data-id="${coctel.idDrink}">Eliminar</button>
             `;
             
-
+            // REQUERIMIENTO 4: Al hacer clic, traer detalles completos del API
             div.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('btn-eliminar')) {
-                    mostrarCoctelDesdeFavoritos(coctel);
+                    buscarCoctelPorId(coctel.idDrink);
                 }
             });
             
             listaFavoritos.appendChild(div);
         });
         
-
+        // Agregar eventos a botones eliminar
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Evitar que se ejecute el click del div padre
+                e.stopPropagation();
                 const idDrink = e.target.dataset.id;
                 if (confirm('¿Estás seguro de eliminar este cóctel de favoritos?')) {
                     eliminarDeFavoritos(idDrink);
@@ -113,29 +115,78 @@ else {
         });
     }
 }
-function mostrarCoctelDesdeFavoritos(coctel) {
-    // Ocultar favoritos y mostrar el cóctel
-    seccionFavoritos.classList.add('oculto');
-    mostrarActual.classList.remove('oculto');
-    
-    // Llenar la información
+
+// REQUERIMIENTO 4: Buscar cóctel por ID desde favoritos
+async function buscarCoctelPorId(idDrink) {
+    try {
+        // Mostrar loader mientras se busca
+        loader.classList.remove("oculto");
+        seccionFavoritos.classList.add('oculto');
+        mostrarActual.classList.add("oculto");
+        btnFavoritos.textContent = 'Ver Favoritos';
+        
+        console.log("Buscando cóctel por ID:", idDrink);
+        
+        // USAR ASYNC/AWAIT como requiere el reto
+        const response = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${idDrink}`);
+        
+        if (!response.ok) {
+            throw new Error("No se pudo encontrar el cóctel");
+        }
+        
+        const data = await response.json();
+        
+        if (data.drinks && data.drinks.length > 0) {
+            const coctel = data.drinks[0];
+            mostrarDetallesCoctel(coctel);
+        } else {
+            throw new Error("Cóctel no encontrado");
+        }
+        
+    } catch (error) {
+        console.error("Error al buscar cóctel por ID:", error);
+        loader.classList.add("oculto");
+        alert("Error al cargar el cóctel desde favoritos. Puede que haya sido eliminado de la API.");
+        
+        // Volver a mostrar favoritos
+        seccionFavoritos.classList.remove('oculto');
+        btnFavoritos.textContent = 'Ocultar Favoritos';
+    }
+}
+
+// Función auxiliar para mostrar detalles del cóctel
+function mostrarDetallesCoctel(coctel) {
     coctelActual = coctel;
+    
+    // Ocultar loader y mostrar detalles
+    loader.classList.add("oculto");
+    mostrarActual.classList.remove("oculto");
+
+    // REQUERIMIENTO 2: Mostrar todos los datos requeridos
     idcoctel.textContent = coctel.idDrink;
     nombrecoctel.textContent = coctel.strDrink;
     catcoctel.textContent = coctel.strCategory;
     tipococtel.textContent = coctel.strAlcoholic;
     imagencoctel.src = coctel.strDrinkThumb;
-    instrucciones.textContent = coctel.strInstructionsES;
-    
-    // Limpiar y llenar ingredientes
+    imagencoctel.alt = `Imagen de ${coctel.strDrink}`;
+
+    // Limpiar y llenar ingredientes con cantidades
     listaIngredientes.innerHTML = '';
-    coctel.ingredientes.forEach(ing => {
-        const li = document.createElement('li');
-        li.textContent = `${ing.medida} ${ing.nombre}`.trim();
-        listaIngredientes.appendChild(li);
-    });
+    for (let i = 1; i <= 15; i++) {
+        const ingrediente = coctel[`strIngredient${i}`];
+        const medida = coctel[`strMeasure${i}`];
+
+        if (ingrediente && ingrediente.trim() !== '') {
+            const li = document.createElement('li');
+            li.textContent = `${medida ? medida + ' ' : ''}${ingrediente}`;
+            listaIngredientes.appendChild(li);
+        }
+    }
+
+    // Instrucciones de preparación
+    instrucciones.textContent = coctel.strInstructionsES || coctel.strInstructions || 'No hay instrucciones disponibles';
     
-    // Actualizar botón agregar
+    // Actualizar botón de agregar a favoritos
     actualizarBotonAgregar();
 }
 
@@ -151,134 +202,85 @@ function actualizarBotonAgregar() {
     }
 }
 
-// MODIFICAR EL EVENTO DEL BOTÓN ALEATORIO EXISTENTE
-boton_aleatorio.addEventListener("click", function() {
-    loader.classList.remove("oculto");
-    mostrarActual.classList.add("oculto");
-    seccionFavoritos.classList.add("oculto"); // Ocultar favoritos si están visibles
+function actualizarContadorFavoritos() {
+    const cantidadFavoritos = obtenerFavoritos().length;
+    if (cantidadFavoritos > 0) {
+        btnFavoritos.textContent = `Ver Favoritos (${cantidadFavoritos})`;
+    } else {
+        btnFavoritos.textContent = 'Ver Favoritos';
+    }
+}
 
-    fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php")
-    .then(response => {
+// REQUERIMIENTO 1: BÚSQUEDA ALEATORIA CON LOADER
+boton_aleatorio.addEventListener("click", async function() {
+    try {
+        // Mostrar loader (indicador de progreso)
+        loader.classList.remove("oculto");
+        mostrarActual.classList.add("oculto");
+        seccionFavoritos.classList.add("oculto");
+        btnFavoritos.textContent = 'Ver Favoritos';
+
+        console.log("Buscando cóctel aleatorio...");
+        
+        // USAR ASYNC/AWAIT como requiere el reto
+        const response = await fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php");
+        
         if (!response.ok) {
             throw new Error("No se pudo encontrar un cóctel");
         }
-        return response.json();
-    })
-    .then(data => {
+        
+        const data = await response.json();
         const coctel = data.drinks[0];
-        coctelActual = coctel; // Guardar el cóctel actual
-        console.log(coctel);
-
-        loader.classList.add("oculto");
-        mostrarActual.classList.remove("oculto");
-
-        idcoctel.textContent = coctel.idDrink;
-        nombrecoctel.textContent = coctel.strDrink;
-        catcoctel.textContent = coctel.strCategory;
-        tipococtel.textContent = coctel.strAlcoholic;
-        imagencoctel.src = coctel.strDrinkThumb;
-
-        // Limpiar lista anterior
-        listaIngredientes.innerHTML = '';
         
-        for (let i = 1; i <= 15; i++) {
-            const ingrediente = coctel[`strIngredient${i}`];
-            const medida = coctel[`strMeasure${i}`];
-
-            if (ingrediente && ingrediente.trim() !== '') {
-                const li = document.createElement('li');
-                li.textContent = `${medida ? medida + ' ' : ''}${ingrediente}`;
-                listaIngredientes.appendChild(li);
-            }
-        }
-
-        instrucciones.textContent = coctel.strInstructionsES;
+        console.log("Cóctel aleatorio encontrado:", coctel);
         
-        // Actualizar botón de agregar
-        actualizarBotonAgregar();
-    })
-    .catch(error => {
-        console.error("Hubo un problema con la solicitud fetch:", error);
+        // Mostrar los datos del cóctel
+        mostrarDetallesCoctel(coctel);
+        
+    } catch (error) {
+        console.error("Error en búsqueda aleatoria:", error);
         loader.classList.add("oculto");
-    });
-});
-
-// EVENTOS PARA BOTONES DE FAVORITOS
-btnAgregar.addEventListener('click', () => {
-    if (coctelActual) {
-        agregarAFavoritos(coctelActual);
-        actualizarBotonAgregar();
+        alert("Error al cargar el cóctel. Por favor, intenta de nuevo.");
     }
 });
 
+// EVENTO - AGREGAR A FAVORITOS
+btnAgregar.addEventListener('click', () => {
+    if (coctelActual) {
+        agregarAFavoritos(coctelActual);
+    }
+});
+
+// EVENTO - VER/OCULTAR FAVORITOS
 btnFavoritos.addEventListener('click', () => {
-    // Alternar entre mostrar favoritos y ocultar
     if (seccionFavoritos.classList.contains('oculto')) {
+        // Mostrar favoritos
         mostrarActual.classList.add('oculto');
         seccionFavoritos.classList.remove('oculto');
         mostrarFavoritos();
         btnFavoritos.textContent = 'Ocultar Favoritos';
     } else {
+        // Ocultar favoritos
         seccionFavoritos.classList.add('oculto');
-        btnFavoritos.textContent = 'Ver Favoritos';
+        actualizarContadorFavoritos();
     }
+});
+
+// MANEJO DE ERRORES DE IMAGEN
+imagencoctel.addEventListener('error', function() {
+    console.log("Error cargando imagen del cóctel");
+    this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><rect width="100%" height="100%" fill="%23f8f9fa"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23666" font-family="Arial">Sin imagen disponible</text></svg>';
 });
 
 // INICIALIZAR AL CARGAR LA PÁGINA
 document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar cantidad de favoritos en el botón
-    const cantidadFavoritos = obtenerFavoritos().length;
-    if (cantidadFavoritos > 0) {
-        btnFavoritos.textContent = `Ver Favoritos (${cantidadFavoritos})`;
-    }
+    // Actualizar contador de favoritos
+    actualizarContadorFavoritos();
+    
+    // Ocultar sección de mostrar actual al inicio
+    mostrarActual.classList.add('oculto');
+    
+    console.log("Aplicación Cocktail Random cargada - Cumpliendo todos los requerimientos del reto");
 });
-
-boton_aleatorio.addEventListener("click", function() {
-    loader.classList.remove("oculto");
-    mostrarActual.classList.add("oculto");
-
-    fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php")
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("No se pudo encontrar un cóctel");
-        }
-        return response.json();
-    })
-    .then(data => {
-        const coctel = data.drinks[0];
-        console.log(coctel);
-
-        // Ocultar el loader y mostrar los resultados
-        loader.classList.add("oculto");
-        mostrarActual.classList.remove("oculto");
-
-        idcoctel.textContent = coctel.idDrink;
-        nombrecoctel.textContent = coctel.strDrink;
-        catcoctel.textContent = coctel.strCategory;
-        tipococtel.textContent = coctel.strAlcoholic;
-        imagencoctel.src = coctel.strDrinkThumb;
-
-        for (let i = 1; i <= 15; i++) {
-            // Construye los nombres de las propiedades dinámicamente
-            const ingrediente = coctel[`strIngredient${i}`];
-            const medida = coctel[`strMeasure${i}`];
-
-            // Si el ingrediente existe y no es nulo, lo añade a la lista
-        if (ingrediente && ingrediente.trim() !== '') {
-            const li = document.createElement('li');
-            li.textContent = `${medida ? medida + ' ' : ''}${ingrediente}`;
-            listaIngredientes.appendChild(li);
-        }
-        }
-
-        instrucciones.textContent = coctel.strInstructionsES;
-    })
-    .catch(error => {
-        // Capturar y manejar errores de la red
-        console.error("Hubo un problema con la solicitud fetch:", error);
-        loader.classList.add("oculto");
-    });
-});
-
 
 
